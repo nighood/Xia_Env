@@ -1,6 +1,6 @@
 
 import itertools
-from typing import Any, SupportsFloat
+from typing import Any, Union, Dict, Tuple, List, SupportsFloat
 import gymnasium
 from matplotlib import pyplot as plt
 import numpy as np
@@ -32,10 +32,12 @@ class Xia1(gymnasium.Env):
         uav_h_min = 10  # uav 限制高度大于10
         search_banjing_max = 10
         num_uavs, num_people = 5, 15
-        uav_action_lst = list(itertools.product([-10, 0, 10], [-10, 0, 10], [-5, 0, 5]))
+        # uav_action_lst = list(itertools.product([-10, 0, 10], [-10, 0, 10], [-5, 0, 5]))
+        uav_action_lst = [(0, 0, 0), (10, 0, 0), (0, 10, 0), (0, 0, 10), (-10, 0, 0), (0, -10, 0), (0, 0, -10)]
         # people_action_lst = list(itertools.product([-1, 0, 1], [-1, 0, 1]))
         ep_time = 1000   # 结束时间
-        observation_size = 90015
+        # observation_size = 90015
+        observation_size = width*height + num_uavs*3
         seed = 0
         if seed != None:
             seed_people = seed + num_uavs + 10
@@ -77,7 +79,7 @@ class Xia1(gymnasium.Env):
         }
         return config, uav_config, people_config
     
-    def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None) -> tuple[Any, dict[str, Any]]:
+    def reset(self, *, seed: Union[int, None] = None, options: Union[Dict[str, Any], None] = None) -> Tuple[Any, Dict[str, Any]]:
         super().reset(seed=seed, options=options)
         self.time = 0
 
@@ -90,6 +92,13 @@ class Xia1(gymnasium.Env):
         info = self.ObsDict
 
         return obs, info
+    
+    def _get_uav_map(self):
+        # 先不用，因为要三维
+        uav_map = np.zeros((self.config["width"], self.config["height"], self.config["h_3d"]))
+        for _ in self.uavs:
+            uav_map[int(_.x), int(_.y), int(_.z)] = 1
+        return uav_map
     
     def _get_obs(self):
         _UAV_location = []
@@ -125,7 +134,7 @@ class Xia1(gymnasium.Env):
         l = np.clip(np.array(l), min, max)
         return (l - min) / (max - min)
     
-    def step(self, action: Any) -> tuple[Any, SupportsFloat, bool, bool, dict[str, Any]]:
+    def step(self, action: Any) -> Tuple[Any, SupportsFloat, bool, bool, Dict[str, Any]]:
         self.time += 1
 
         for i in range(len(self.uavs)):
