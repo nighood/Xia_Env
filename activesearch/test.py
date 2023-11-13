@@ -1,6 +1,6 @@
 import gymnasium
-import registry
-env = gymnasium.make("xia-env-v0")
+import activesearch
+env = gymnasium.make("active-search-v0")
 obs, info = env.reset()
 # array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
 

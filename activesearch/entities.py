@@ -28,8 +28,8 @@ class People:
         if self.rng is None:
             self.rng = np.random.default_rng(self.seed) # 重置随机数生成器
 
-        self.x = self.rng.uniform(self.search_banjing_max, self.width - self.search_banjing_max)    # 考虑探索半径
-        self.y = self.rng.uniform(self.search_banjing_max, self.height - self.search_banjing_max)
+        self.x = int(self.rng.uniform(self.search_banjing_max, self.width - self.search_banjing_max))    # 考虑探索半径
+        self.y = int(self.rng.uniform(self.search_banjing_max, self.height - self.search_banjing_max))
 
 class UAV:
     def __init__(self, 
@@ -65,9 +65,9 @@ class UAV:
         if self.rng is None:
             self.rng = np.random.default_rng(self.seed) # 重置随机数生成器
 
-        self.x = self.rng.uniform(self.search_banjing_max, self.width - self.search_banjing_max - 1)    # 考虑探索半径
-        self.y = self.rng.uniform(self.search_banjing_max, self.height - self.search_banjing_max - 1)
-        self.z = self.rng.uniform(self.h_min, self.h_3d)        # uav 限制高度大于self.h_min
+        self.x = int(self.rng.uniform(self.search_banjing_max, self.width - self.search_banjing_max - 1))    # 考虑探索半径
+        self.y = int(self.rng.uniform(self.search_banjing_max, self.height - self.search_banjing_max - 1))
+        self.z = int(self.rng.uniform(self.h_min, self.h_3d))        # uav 限制高度大于self.h_min
 
     def move(self, action: Tuple[float, float, float] = None) -> None:
         if action == None:
@@ -80,6 +80,5 @@ class UAV:
         position = np.clip(position, self.search_banjing_max, max(self.width, self.height) - self.search_banjing_max - 1)
         position[2] = np.clip(position[2], self.h_min, self.h_3d)
         return tuple(position)
-
 
 
