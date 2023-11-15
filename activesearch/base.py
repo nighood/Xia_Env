@@ -23,8 +23,9 @@ class Xia1(gymnasium.Env):
         self.observation_space = gymnasium.spaces.Box(low=0.0, high=1.0, shape=(config["observation_size"],))
         self.config = config
 
-        self.ax = plt.figure().add_subplot(projection='3d')
-        self.fig1, self.ax1 = plt.subplots()
+        if self.config['save_replay']:
+            self.ax = plt.figure().add_subplot(projection='3d')
+            self.fig1, self.ax1 = plt.subplots()
 
     @classmethod
     def default_config(cls):
@@ -76,6 +77,7 @@ class Xia1(gymnasium.Env):
             "observation_size": observation_size,
 
             "search_banjing_max": search_banjing_max,
+            "save_replay": False,
         }
         return config, uav_config, people_config
     
@@ -184,9 +186,9 @@ class Xia1(gymnasium.Env):
         search_banjing = int(search_banjing)
 
         xm = max(0, int(x) - search_banjing)
-        xl = min(self.config['width'], int(x) + search_banjing + 1)
+        xl = min(self.config['width'], int(x) + search_banjing)
         ym = max(0, int(y) - search_banjing)
-        yl = min(self.config['width'], int(y) + search_banjing + 1)
+        yl = min(self.config['width'], int(y) + search_banjing)
 
         A = np.ones((search_banjing * 2 + 1, search_banjing * 2 + 1)) * (-1)
         for _ in self.people:
@@ -197,7 +199,7 @@ class Xia1(gymnasium.Env):
         noise = np.clip(np.random.normal(80/uav.z, 2, size=A.shape)/10, -1, 1)
         y_belief = A * noise    # -1，1矩阵
 
-        self.BeliefMap[xm:xl, ym:yl] += y_belief / self.config['EP_MAX_TIME']
+        self.BeliefMap[xm:xl+1, ym:yl+1] += y_belief / self.config['EP_MAX_TIME']
         # self.BeliefMap = np.clip(self.BeliefMap, 0, 1)
 
         # B = self.BeliefMap[xm:xl, ym:yl]
@@ -230,3 +232,6 @@ class Xia1(gymnasium.Env):
         self.fig1.colorbar(caxes)
         plt.pause(0.01)
         return None
+    
+    def seed(self, seed: int = 0):
+        np.random.seed(seed)
