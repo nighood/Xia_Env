@@ -23,10 +23,6 @@ class Xia1(gymnasium.Env):
         self.observation_space = gymnasium.spaces.Box(low=0.0, high=1.0, shape=(config["observation_size"],))
         self.config = config
 
-        if self.config['save_replay']:
-            self.ax = plt.figure().add_subplot(projection='3d')
-            self.fig1, self.ax1 = plt.subplots()
-
     @classmethod
     def default_config(cls):
         width, height, h_3d = 300, 300, 100   # 图大小
@@ -36,7 +32,7 @@ class Xia1(gymnasium.Env):
         # uav_action_lst = list(itertools.product([-10, 0, 10], [-10, 0, 10], [-5, 0, 5]))
         uav_action_lst = [(0, 0, 0), (10, 0, 0), (0, 10, 0), (0, 0, 5), (-10, 0, 0), (0, -10, 0), (0, 0, -5)]
         # people_action_lst = list(itertools.product([-1, 0, 1], [-1, 0, 1]))
-        ep_time = 1000   # 结束时间
+        ep_time = 200   # 结束时间
         # observation_size = 90015
         observation_size = width*height + num_uavs*3
         seed = 0
@@ -93,6 +89,11 @@ class Xia1(gymnasium.Env):
         
         obs = self._get_obs()
         info = self.ObsDict
+
+        if self.config['save_replay']:
+            self.fig = plt.figure()
+            self.ax = self.fig.add_subplot(projection='3d')
+            self.fig1, self.ax1 = plt.subplots()
 
         return obs, info
     
@@ -230,8 +231,21 @@ class Xia1(gymnasium.Env):
         for i in self.ObsDict['_People_location']:
             self.ax1.scatter(int(i[0]), int(i[1]), marker='.', s=1)
         self.fig1.colorbar(caxes)
-        plt.pause(0.01)
-        return None
+        # plt.pause(0.01)
+        return self.render_to_frame()
+    
+    def render_to_frame(self):
+        # 返回 Matplotlib 图形对象
+        self.fig.canvas.draw()
+        frame_3d = np.array(self.fig.canvas.renderer.buffer_rgba())
+
+        self.fig1.canvas.draw()
+        frame_2d = np.array(self.fig1.canvas.renderer.buffer_rgba())
+
+        # 将两个图像拼接成一个帧
+        frame_combined = np.concatenate((frame_3d, frame_2d), axis=1)
+
+        return frame_combined
     
     def seed(self, seed: int = 0):
         np.random.seed(seed)
