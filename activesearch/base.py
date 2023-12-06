@@ -30,7 +30,8 @@ class Xia1(gymnasium.Env):
         search_banjing_max = 10
         num_uavs, num_people = 2, 15
         # uav_action_lst = list(itertools.product([-10, 0, 10], [-10, 0, 10], [-5, 0, 5]))
-        uav_action_lst = [(0, 0, 0), (10, 0, 0), (0, 10, 0), (0, 0, 5), (-10, 0, 0), (0, -10, 0), (0, 0, -5)]
+        # uav_action_lst = [(0, 0, 0), (10, 0, 0), (0, 10, 0), (0, 0, 5), (-10, 0, 0), (0, -10, 0), (0, 0, -5)]
+        uav_action_lst = [(10, 0, 0), (0, 10, 0), (0, 0, 5), (-10, 0, 0), (0, -10, 0), (0, 0, -5)]
         # people_action_lst = list(itertools.product([-1, 0, 1], [-1, 0, 1]))
         ep_time = 200   # 结束时间
         # observation_size = 90015
@@ -81,6 +82,8 @@ class Xia1(gymnasium.Env):
         super().reset(seed=seed, options=options)
         self.time = 0
         self.BeliefMap = np.zeros((self.config["width"], self.config["height"]))
+        self.CountMap = np.zeros((self.config["width"], self.config["height"]))
+        self.TotalBeliefMap = np.zeros((self.config["width"], self.config["height"]))
 
         for i in self.uavs:
             i.reset()
@@ -89,6 +92,10 @@ class Xia1(gymnasium.Env):
         
         obs = self._get_obs()
         info = self.ObsDict
+        self.closed = False
+        self._belief_last_total_reward = 0
+        self._uav_out_map = False
+        self._step_count = 0
 
         if self.config['save_replay']:
             self.fig = plt.figure()
@@ -144,15 +151,17 @@ class Xia1(gymnasium.Env):
         for i in range(len(self.uavs)):
             uav_1 = self.uavs[i]
             action_i = self.config["uav_action_lst"][action[i]]
-            uav_1.x, uav_1.y, uav_1.z = uav_1.move(action_i)
+            uav_position, self._uav_out_map = uav_1.move(action_i)
+            uav_1.x, uav_1.y, uav_1.z = uav_position
             self.BMapChange(uav_1)
 
         rewards = self._get_reward()
 
         obs = self._get_obs()
         info = self.ObsDict
+        self._step_count += 1
 
-        if self.time >= self.config['EP_MAX_TIME']:
+        if self.time >= self.config['EP_MAX_TIME'] or self._uav_out_map:
             self.closed = True
 
         return obs, rewards, self.closed, self.closed, info
@@ -197,10 +206,13 @@ class Xia1(gymnasium.Env):
                 A[int(_.x) - xm, int(_.y) - ym] = 1
         # A为-1，1矩阵
         # noise = np.clip(1/np.random.normal(uav.z, 10), -1, 1) # 0-1, z越低值越大
-        noise = np.clip(np.random.normal(80/uav.z, 2, size=A.shape)/10, -1, 1)
+        # noise = np.clip(np.random.normal(80/uav.z, 2, size=A.shape)/10, -1, 1)
+        noise = np.clip(np.random.normal(80/uav.z, 1, size=A.shape), -1, 1)
         y_belief = A * noise    # -1，1矩阵
 
-        self.BeliefMap[xm:xl+1, ym:yl+1] += y_belief / self.config['EP_MAX_TIME']
+        self.CountMap[xm:xl+1, ym:yl+1] += 1    # 相应计数+1
+        self.TotalBeliefMap[xm:xl+1, ym:yl+1] += y_belief
+        self.BeliefMap[xm:xl+1, ym:yl+1] = self.TotalBeliefMap[xm:xl+1, ym:yl+1] / self.CountMap[xm:xl+1, ym:yl+1]
         # self.BeliefMap = np.clip(self.BeliefMap, 0, 1)
 
         # B = self.BeliefMap[xm:xl, ym:yl]
@@ -209,9 +221,16 @@ class Xia1(gymnasium.Env):
         return
 
     def _get_reward(self):
-        reward = 0
+        reward = 1
+        b_reward = 0
         for i in self.people:
-            reward += self.BeliefMap[int(i.x), int(i.y)]
+            b_reward += self.BeliefMap[int(i.x), int(i.y)]
+        if b_reward-self._belief_last_total_reward>0.2:
+            reward += (b_reward - self._belief_last_total_reward) * 10000 * (1 - self._step_count/self.config['EP_MAX_TIME'])
+            # reward += (b_reward - self._last_total_reward) * 10000
+        self._belief_last_total_reward = b_reward  # _belief_last_total_reward 是 believe 总统计量
+        if self._uav_out_map:
+            reward -= 100000
         return reward
 
     def render(self) -> None:
