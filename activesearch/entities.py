@@ -68,7 +68,6 @@ class UAV:
         self.x = int(self.rng.uniform(self.search_banjing_max, self.width - self.search_banjing_max - 1))    # 考虑探索半径
         self.y = int(self.rng.uniform(self.search_banjing_max, self.height - self.search_banjing_max - 1))
         self.z = int(self.rng.uniform(self.h_min, self.h_3d))        # uav 限制高度大于self.h_min
-        self._out_map = False
 
     def move(self, action: Tuple[float, float, float] = None) -> None:
         if action == None:
@@ -78,11 +77,8 @@ class UAV:
 
         position = np.array([self.x, self.y, self.z])
         position = position + [x_change, y_change, z_change]
-        # if element in position not in [self.search_banjing_max, max(self.width, self.height) - self.search_banjing_max - 1], game done
-        if np.any(position < self.search_banjing_max) or np.any(position > max(self.width, self.height) - self.search_banjing_max - 1):
-            self._out_map = True
-        position = np.clip(position, self.search_banjing_max, max(self.width, self.height) - self.search_banjing_max - 1)
+        # position = np.clip(position, self.search_banjing_max, max(self.width, self.height) - self.search_banjing_max - 1)
         position[2] = np.clip(position[2], self.h_min, self.h_3d)
-        return position, self._out_map
+        return tuple(position)
 
 
