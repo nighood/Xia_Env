@@ -128,7 +128,7 @@ class Xia1(gymnasium.Env):
                         "BeliefMap": BeliefMap,}
 
         MMmax = max(self.config["width"], self.config["height"], self.config["h_3d"])
-        _UAV_location = self.MinMaxNorm(_UAV_location, 0, MMmax)
+        # _UAV_location = self.MinMaxNorm(_UAV_location, 0, MMmax)
         _People_location = self.MinMaxNorm(_People_location, 0, MMmax)
 
         NormObsDict = {"_UAV_location": _UAV_location,
@@ -138,7 +138,7 @@ class Xia1(gymnasium.Env):
         start = True
         for i in NormObsDict.values():
             if start:
-                arr = i.flatten()
+                arr = np.array(i).flatten()
                 start = False
                 continue
             arr = np.concatenate((arr, i.flatten()))
